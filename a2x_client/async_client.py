@@ -1,6 +1,6 @@
 """Asynchronous client entry point.
 
-``AsyncA2XClient`` mirrors ``A2XClient`` one-to-one: same methods, same
+``AsyncA2XRegistryClient`` mirrors ``A2XRegistryClient`` one-to-one: same methods, same
 parameters, same return types, same exceptions — only every method is a
 coroutine and HTTP flows through ``httpx.AsyncClient``. ``OwnershipStore`` is
 synchronous by design, so its writes are dispatched via
@@ -35,7 +35,7 @@ from .ownership import OwnershipStore
 from .transport import AsyncHTTPTransport
 
 
-class AsyncA2XClient:
+class AsyncA2XRegistryClient:
     def __init__(
         self,
         base_url: str = "http://127.0.0.1:8000",
@@ -55,7 +55,7 @@ class AsyncA2XClient:
             file_path=_i.resolve_ownership_file(ownership_file),
             base_url=self._base_url,
         )
-        # L1 cache for restore_to_blank (see A2XClient.__init__ for rationale).
+        # L1 cache for restore_to_blank (see A2XRegistryClient.__init__ for rationale).
         # Pure in-memory dict; the event loop serialises access so no lock needed.
         self._blank_endpoints: dict[tuple[str, str], str] = {}
 
@@ -78,7 +78,7 @@ class AsyncA2XClient:
     async def aclose(self) -> None:
         await self._transport.aclose()
 
-    async def __aenter__(self) -> "AsyncA2XClient":
+    async def __aenter__(self) -> "AsyncA2XRegistryClient":
         return self
 
     async def __aexit__(self, *_exc: Any) -> None:
@@ -151,7 +151,7 @@ class AsyncA2XClient:
         service_id: str,
         status: str,
     ) -> PatchResponse:
-        """See ``A2XClient.set_status``."""
+        """See ``A2XRegistryClient.set_status``."""
         body = _i.build_status_body(status)
         self._assert_owned(dataset, service_id)
         try:
@@ -168,7 +168,7 @@ class AsyncA2XClient:
         dataset: str,
         **filters: Any,
     ) -> list[dict[str, Any]]:
-        """See ``A2XClient.list_agents``."""
+        """See ``A2XRegistryClient.list_agents``."""
         params = _i.build_filter_params(filters)
         resp = await self._transport.request(
             "GET", _i.services_path(dataset), params=params
@@ -176,7 +176,7 @@ class AsyncA2XClient:
         return _i.parse_agent_list(resp)
 
     async def get_agent(self, dataset: str, service_id: str) -> AgentDetail:
-        """See ``A2XClient.get_agent``."""
+        """See ``A2XRegistryClient.get_agent``."""
         resp = await self._transport.request(
             "GET", _i.service_path(dataset, service_id)
         )
@@ -206,7 +206,7 @@ class AsyncA2XClient:
         service_id: str | None = None,
         persistent: bool = True,
     ) -> RegisterResponse:
-        """See ``A2XClient.register_blank_agent``."""
+        """See ``A2XRegistryClient.register_blank_agent``."""
         card = _i.build_blank_agent_card(endpoint)
         result = await self.register_agent(
             dataset, card, service_id=service_id, persistent=persistent
@@ -219,7 +219,7 @@ class AsyncA2XClient:
         dataset: str,
         n: int = 1,
     ) -> list[dict[str, Any]]:
-        """See ``A2XClient.list_idle_blank_agents``. One HTTP call."""
+        """See ``A2XRegistryClient.list_idle_blank_agents``. One HTTP call."""
         if not isinstance(n, int) or isinstance(n, bool) or n < 0:
             raise ValueError(f"n must be a non-negative int, got {n!r}")
         if n == 0:
@@ -239,7 +239,7 @@ class AsyncA2XClient:
         agent_card: dict[str, Any],
         release_lease: bool = True,
     ) -> RegisterResponse:
-        """See ``A2XClient.replace_agent_card``."""
+        """See ``A2XRegistryClient.replace_agent_card``."""
         self._assert_owned(dataset, service_id)
         if not isinstance(agent_card, dict):
             raise ValueError(
@@ -285,7 +285,7 @@ class AsyncA2XClient:
         dataset: str,
         service_id: str,
     ) -> RegisterResponse:
-        """See ``A2XClient.restore_to_blank``."""
+        """See ``A2XRegistryClient.restore_to_blank``."""
         self._assert_owned(dataset, service_id)
         endpoint = await self._resolve_endpoint(dataset, service_id)
         card = _i.build_blank_agent_card(endpoint)
@@ -293,7 +293,7 @@ class AsyncA2XClient:
         return await self.replace_agent_card(dataset, service_id, card)
 
     async def _resolve_endpoint(self, dataset: str, service_id: str) -> str:
-        """See ``A2XClient._resolve_endpoint``."""
+        """See ``A2XRegistryClient._resolve_endpoint``."""
         cached = self._blank_endpoints.get((dataset, service_id))
         if cached:
             return cached
@@ -318,7 +318,7 @@ class AsyncA2XClient:
         holder_id: str | None = None,
         extra_filters: dict[str, Any] | None = None,
     ) -> Reservation:
-        """See ``A2XClient.reserve_blank_agents``."""
+        """See ``A2XRegistryClient.reserve_blank_agents``."""
         if not isinstance(n, int) or isinstance(n, bool) or n < 0:
             raise ValueError(f"n must be a non-negative int, got {n!r}")
         if not isinstance(ttl_seconds, int) or ttl_seconds < 1:
@@ -346,7 +346,7 @@ class AsyncA2XClient:
         reservation: Reservation,
         service_ids: list[str] | None = None,
     ) -> list[str]:
-        """See ``A2XClient.release_reservation``."""
+        """See ``A2XRegistryClient.release_reservation``."""
         released: list[str] = []
         if service_ids is None:
             resp = await self._transport.request(
@@ -371,7 +371,7 @@ class AsyncA2XClient:
         reservation: Reservation,
         ttl_seconds: int = _i.DEFAULT_RESERVATION_TTL,
     ) -> float:
-        """See ``A2XClient.extend_reservation``."""
+        """See ``A2XRegistryClient.extend_reservation``."""
         if not isinstance(ttl_seconds, int) or ttl_seconds < 1:
             raise ValueError(f"ttl_seconds must be >= 1, got {ttl_seconds!r}")
         resp = await self._transport.request(
@@ -385,7 +385,7 @@ class AsyncA2XClient:
         return new_expires
 
     async def release_my_lease(self, dataset: str, service_id: str) -> bool:
-        """See ``A2XClient.release_my_lease``."""
+        """See ``A2XRegistryClient.release_my_lease``."""
         self._assert_owned(dataset, service_id)
         resp = await self._transport.request(
             "DELETE", _i.service_lease_path(dataset, service_id),

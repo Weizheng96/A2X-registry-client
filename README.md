@@ -22,9 +22,9 @@ Requires Python ≥ 3.10. Only runtime dependency is `httpx`.
 ## Quickstart (sync)
 
 ```python
-from a2x_client import A2XClient
+from a2x_client import A2XRegistryClient
 
-with A2XClient(base_url="http://127.0.0.1:8000") as client:
+with A2XRegistryClient(base_url="http://127.0.0.1:8000") as client:
     client.create_dataset("research_team")   # formats defaults to {"a2a": "v0.0"}
 
     planner = client.register_agent("research_team", {
@@ -48,10 +48,10 @@ with A2XClient(base_url="http://127.0.0.1:8000") as client:
 
 ```python
 import asyncio
-from a2x_client import AsyncA2XClient
+from a2x_client import AsyncA2XRegistryClient
 
 async def main():
-    async with AsyncA2XClient(base_url="http://127.0.0.1:8000") as client:
+    async with AsyncA2XRegistryClient(base_url="http://127.0.0.1:8000") as client:
         await client.create_dataset("research_team")
         resp = await client.register_agent("research_team", {
             "protocolVersion": "0.0", "name": "a", "description": "b",

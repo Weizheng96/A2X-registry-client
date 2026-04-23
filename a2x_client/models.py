@@ -95,7 +95,7 @@ class Reservation:
     best-effort releases all leases under ``holder_id`` (idempotent — a
     later explicit release is a no-op).
 
-    The async variant requires the matching ``AsyncA2XClient``; storing the
+    The async variant requires the matching ``AsyncA2XRegistryClient``; storing the
     client reference lets the context-manager release path work even after
     the calling scope's local variable is gone.
     """

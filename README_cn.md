@@ -22,8 +22,8 @@ Python ≥ 3.10，运行时仅依赖 `httpx`。
 
 | 入口 | 底层 |
 |------|------|
-| `A2XClient` | `httpx.Client` |
-| `AsyncA2XClient` | `httpx.AsyncClient` |
+| `A2XRegistryClient` | `httpx.Client` |
+| `AsyncA2XRegistryClient` | `httpx.AsyncClient` |
 
 方法名、参数、返回类型、异常体系完全对称；async 版每个方法以 `async def` 定义，关闭方法为 `aclose()`。
 
@@ -42,9 +42,9 @@ Python ≥ 3.10，运行时仅依赖 `httpx`。
 如果想用非默认的 embedding 模型或 formats，由管理员先显式创建：
 
 ```python
-from a2x_client import A2XClient
+from a2x_client import A2XRegistryClient
 
-admin = A2XClient(base_url="http://127.0.0.1:8000")
+admin = A2XRegistryClient(base_url="http://127.0.0.1:8000")
 admin.create_dataset("team_pool", embedding_model="bge-small-zh-v1.5")
 admin.close()
 ```
@@ -55,10 +55,10 @@ admin.close()
 
 ```python
 from pathlib import Path
-from a2x_client import A2XClient
+from a2x_client import A2XRegistryClient
 
 # 每个 teammate 进程用独立的 ownership 文件，避免互相干扰
-client = A2XClient(
+client = A2XRegistryClient(
     base_url="http://127.0.0.1:8000",
     ownership_file=Path("/var/run/a2x_teammate1.json"),
 )
@@ -95,10 +95,10 @@ client.close()
 #### Teamleader 视角（`teamleader_node.py`）
 
 ```python
-from a2x_client import A2XClient
+from a2x_client import A2XRegistryClient
 
 # leader 不注册任何 agent，纯发现 + 协调，ownership_file=False 跳过持久化
-client = A2XClient(base_url="http://127.0.0.1:8000", ownership_file=False)
+client = A2XRegistryClient(base_url="http://127.0.0.1:8000", ownership_file=False)
 
 # 预订 1 个空闲 blank agent，30 秒内其他 leader 看不到这个 sid
 reservation = client.reserve_blank_agents("team_pool", n=1, ttl_seconds=30)
@@ -133,11 +133,11 @@ client.close()
 
 #### 异步版
 
-`AsyncA2XClient` 一对一镜像 `A2XClient`，方法名 / 参数 / 返回类型完全一致。改动只有两处：每个方法调用前加 `await`，关闭方法 `client.close()` 改成 `await client.aclose()`。其他逻辑无变化。
+`AsyncA2XRegistryClient` 一对一镜像 `A2XRegistryClient`，方法名 / 参数 / 返回类型完全一致。改动只有两处：每个方法调用前加 `await`，关闭方法 `client.close()` 改成 `await client.aclose()`。其他逻辑无变化。
 
 ### 2.2 全部 method 解释
 
-`A2XClient` 共 18 个对外方法（含 `__init__` 与 `close`）。`AsyncA2XClient` **一对一镜像**，仅 `close` → `aclose`、调用形式改为 `await client.method(...)`；方法名、参数、返回类型、异常一致。下文仅列同步版。
+`A2XRegistryClient` 共 18 个对外方法（含 `__init__` 与 `close`）。`AsyncA2XRegistryClient` **一对一镜像**，仅 `close` → `aclose`、调用形式改为 `await client.method(...)`；方法名、参数、返回类型、异常一致。下文仅列同步版。
 
 **通用异常**（每个方法都可能发生，不重复列出）：
 - `A2XConnectionError` — 网络 / 超时
@@ -170,7 +170,7 @@ A2XError
 | `api_key` | `str \| None` | `None` | 非空时加请求头 `Authorization: Bearer ...` |
 | `ownership_file` | `Path \| str \| False \| None` | `None` | `None`=`~/.a2x_client/owned.json`；`False`=仅内存；其他=显式路径 |
 
-**返回**：`A2XClient`
+**返回**：`A2XRegistryClient`
 **错误**：无（磁盘读失败降级为 warning）
 
 ---
@@ -489,7 +489,7 @@ Teammate-self 释放：释放任何 holder 在自己 sid 上的 lease（DELETE `
 关闭底层 `httpx.Client` 连接池。支持上下文管理器：
 
 ```python
-with A2XClient(...) as client:
+with A2XRegistryClient(...) as client:
     client.register_blank_agent(...)
 # 退出时自动 close()
 ```
@@ -504,7 +504,7 @@ with A2XClient(...) as client:
 
 ```
 a2x_client/
-├── __init__.py       # 导出 A2XClient / AsyncA2XClient / 异常 / dataclass
+├── __init__.py       # 导出 A2XRegistryClient / AsyncA2XRegistryClient / 异常 / dataclass
 ├── client.py         # A2XClient（同步入口）
 ├── async_client.py   # AsyncA2XClient（异步镜像）
 ├── transport.py      # HTTPTransport + AsyncHTTPTransport
@@ -558,7 +558,7 @@ flowchart LR
     A["RegistryService<br/>(后端业务层)"] -->|raise RegistryNotFoundError| B["FastAPI Router<br/>(协议适配层)"]
     B -->|map to HTTPException 404| C["HTTP 404"]
     C -->|httpx receives 404| D["SDK Transport<br/>_wrap_http_error"]
-    D -->|raise NotFoundError| E["A2XClient / AsyncA2XClient"]
+    D -->|raise NotFoundError| E["A2XRegistryClient / AsyncA2XRegistryClient"]
     E -->|cleanup _owned + L1 cache,<br/>then re-raise| F["Developer Code"]
 ```
 
@@ -580,14 +580,14 @@ flowchart LR
 1. `RegistryService.deregister(...)` 发现 sid 不存在 → 抛 `RegistryNotFoundError`
 2. Router `_run` 捕获 → `HTTPException(status_code=404, detail=str(exc))`
 3. SDK transport `_wrap_http_error` → `NotFoundError(message, status_code=404, payload={"detail": ...})`
-4. `A2XClient.deregister_agent` 捕获 `NotFoundError` → `_owned.remove(...)` + `_blank_endpoints.pop(...)` → 重抛
+4. `A2XRegistryClient.deregister_agent` 捕获 `NotFoundError` → `_owned.remove(...)` + `_blank_endpoints.pop(...)` → 重抛
 5. 调用方按业务需要处理 `NotFoundError`（或继续上抛）
 
 ---
 
 ## 4. 对外接口 → 内部调用时序图
 
-**图例**：`Dev` 调用方 · `Client` A2XClient · `Own` OwnershipStore · `HTTP` HTTPTransport · `API` FastAPI 后端 · `FS` 本地文件系统
+**图例**：`Dev` 调用方 · `Client` A2XRegistryClient · `Own` OwnershipStore · `HTTP` HTTPTransport · `API` FastAPI 后端 · `FS` 本地文件系统
 
 **异步版差异**：`Client → HTTP` 所有调用前加 `await`；`Own` 的写操作通过 `await asyncio.to_thread(...)` 调度；只读 `contains` 仍同步。
 
@@ -605,7 +605,7 @@ sequenceDiagram
     participant Own
     participant FS
 
-    Dev->>Client: A2XClient(base_url, ownership_file, ...)
+    Dev->>Client: A2XRegistryClient(base_url, ownership_file, ...)
     Client->>Client: normalize_base_url + build_headers
     Client->>HTTP: HTTPTransport(base_url, timeout, headers)
     HTTP-->>Client: transport（未发 HTTP）
@@ -614,7 +614,7 @@ sequenceDiagram
     FS-->>Own: JSON / 缺失 / 损坏
     Own->>Own: 解析本 base_url 段落<br/>v0 扁平格式静默迁移为 v1
     Own-->>Client: store（内存恢复完成）
-    Client-->>Dev: A2XClient
+    Client-->>Dev: A2XRegistryClient
 ```
 
 ### 4.2 `register_agent`

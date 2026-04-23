@@ -1,7 +1,7 @@
 """Shared helpers used by the sync and async client classes.
 
-Keeping these as pure module-level functions lets ``A2XClient`` and
-``AsyncA2XClient`` stay symmetric without sharing a base class.
+Keeping these as pure module-level functions lets ``A2XRegistryClient`` and
+``AsyncA2XRegistryClient`` stay symmetric without sharing a base class.
 """
 
 from __future__ import annotations

@@ -2,15 +2,15 @@
 
 Public entry points:
 
-- :class:`A2XClient` — synchronous client
-- :class:`AsyncA2XClient` — asynchronous client (mirrors ``A2XClient``)
+- :class:`A2XRegistryClient` — synchronous client
+- :class:`AsyncA2XRegistryClient` — asynchronous client (mirrors ``A2XRegistryClient``)
 
 Response dataclasses and the exception hierarchy are re-exported for
 ``except``/``isinstance`` use.
 """
 
-from .async_client import AsyncA2XClient
-from .client import A2XClient
+from .async_client import AsyncA2XRegistryClient
+from .client import A2XRegistryClient
 from .errors import (
     A2XConnectionError,
     A2XError,
@@ -34,8 +34,8 @@ from .models import (
 )
 
 __all__ = [
-    "A2XClient",
-    "AsyncA2XClient",
+    "A2XRegistryClient",
+    "AsyncA2XRegistryClient",
     # Errors
     "A2XError",
     "A2XConnectionError",

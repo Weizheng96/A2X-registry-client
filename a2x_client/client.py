@@ -1,6 +1,6 @@
 """Synchronous client entry point.
 
-``A2XClient`` composes an ``HTTPTransport`` + ``OwnershipStore`` and translates
+``A2XRegistryClient`` composes an ``HTTPTransport`` + ``OwnershipStore`` and translates
 each public method into one HTTP call plus (for mutating methods) an ownership
 check / update. All business rules live in this module; network and
 persistence concerns stay in their respective components.
@@ -34,7 +34,7 @@ from .ownership import OwnershipStore
 from .transport import HTTPTransport
 
 
-class A2XClient:
+class A2XRegistryClient:
     def __init__(
         self,
         base_url: str = "http://127.0.0.1:8000",
@@ -82,7 +82,7 @@ class A2XClient:
     def close(self) -> None:
         self._transport.close()
 
-    def __enter__(self) -> "A2XClient":
+    def __enter__(self) -> "A2XRegistryClient":
         return self
 
     def __exit__(self, *_exc: Any) -> None:
