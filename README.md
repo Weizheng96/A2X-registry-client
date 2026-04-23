@@ -25,7 +25,7 @@ Python ≥ 3.10，运行时仅依赖 `httpx`。
 
 方法名、参数、返回类型、异常体系完全对称；async 版每个方法以 `async def` 定义，关闭方法为 `aclose()`。
 
-**独立分发约束**：SDK 自包含，仅依赖 `httpx`（Python ≥ 3.10），不引用其他模块。使用 `from a2x_client import ...`。
+**独立分发约束**：SDK 自包含，仅依赖 `httpx`（Python ≥ 3.10），不引用其他模块。使用 `from a2x_registry_client import ...`。
 
 ---
 
@@ -40,7 +40,7 @@ Python ≥ 3.10，运行时仅依赖 `httpx`。
 如果想用非默认的 embedding 模型或 formats，由管理员先显式创建：
 
 ```python
-from a2x_client import A2XRegistryClient
+from a2x_registry_client import A2XRegistryClient
 
 admin = A2XRegistryClient(base_url="http://127.0.0.1:8000")
 admin.create_dataset("team_pool", embedding_model="bge-small-zh-v1.5")
@@ -53,7 +53,7 @@ admin.close()
 
 ```python
 from pathlib import Path
-from a2x_client import A2XRegistryClient
+from a2x_registry_client import A2XRegistryClient
 
 # 每个 teammate 进程用独立的 ownership 文件，避免互相干扰
 client = A2XRegistryClient(
@@ -93,7 +93,7 @@ client.close()
 #### Teamleader 视角（`teamleader_node.py`）
 
 ```python
-from a2x_client import A2XRegistryClient
+from a2x_registry_client import A2XRegistryClient
 
 # leader 不注册任何 agent，纯发现 + 协调，ownership_file=False 跳过持久化
 client = A2XRegistryClient(base_url="http://127.0.0.1:8000", ownership_file=False)
@@ -166,7 +166,7 @@ A2XError
 | `base_url` | `str` | `"http://127.0.0.1:8000"` | 自动补尾斜杠，支持子路径挂载 |
 | `timeout` | `float` | `30.0` | HTTP 超时（秒） |
 | `api_key` | `str \| None` | `None` | 非空时加请求头 `Authorization: Bearer ...` |
-| `ownership_file` | `Path \| str \| False \| None` | `None` | `None`=`~/.a2x_client/owned.json`；`False`=仅内存；其他=显式路径 |
+| `ownership_file` | `Path \| str \| False \| None` | `None` | `None`=`~/.a2x_registry_client/owned.json`；`False`=仅内存；其他=显式路径 |
 
 **返回**：`A2XRegistryClient`
 **错误**：无（磁盘读失败降级为 warning）
@@ -501,7 +501,7 @@ with A2XRegistryClient(...) as client:
 ### 3.1 模块划分
 
 ```
-a2x_client/
+a2x_registry_client/
 ├── __init__.py       # 导出 A2XRegistryClient / AsyncA2XRegistryClient / 异常 / dataclass
 ├── client.py         # A2XClient（同步入口）
 ├── async_client.py   # AsyncA2XClient（异步镜像）
@@ -512,7 +512,7 @@ a2x_client/
 └── errors.py         # 异常层级
 ```
 
-**独立性自检**：`grep -rE "^(from|import) " a2x_client/ | grep -v "^[^:]*:(from \.|from __future__|import (httpx|json|os|sys|asyncio|warnings|threading|contextlib|pathlib|typing|dataclasses|urllib))"` 应无命中 —— 即仅依赖 `httpx` 与标准库。
+**独立性自检**：`grep -rE "^(from|import) " a2x_registry_client/ | grep -v "^[^:]*:(from \.|from __future__|import (httpx|json|os|sys|asyncio|warnings|threading|contextlib|pathlib|typing|dataclasses|urllib))"` 应无命中 —— 即仅依赖 `httpx` 与标准库。
 
 ### 3.2 职责分层
 
@@ -529,7 +529,7 @@ a2x_client/
 
 ### 3.3 所有权与状态
 
-`OwnershipStore` 维护 `_owned: {dataset: {service_id}}`，记录本客户端注册过的服务，默认持久化到 `~/.a2x_client/owned.json`。
+`OwnershipStore` 维护 `_owned: {dataset: {service_id}}`，记录本客户端注册过的服务，默认持久化到 `~/.a2x_registry_client/owned.json`。
 
 | 方法 | 写 `_owned` | 读 `_owned` |
 |------|:-:|:-:|

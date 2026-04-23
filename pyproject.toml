@@ -27,7 +27,7 @@ Homepage = "https://github.com/Weizheng96/A2X-registry-client"
 Issues = "https://github.com/Weizheng96/A2X-registry-client/issues"
 
 [tool.setuptools]
-packages = ["a2x_client"]
+packages = ["a2x_registry_client"]
 
 [tool.setuptools.package-data]
-a2x_client = ["py.typed"]
+a2x_registry_client = ["py.typed"]

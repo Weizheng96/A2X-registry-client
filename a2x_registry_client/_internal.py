@@ -29,7 +29,7 @@ sync with the backend's ``vector.utils.embedding.DEFAULT_EMBEDDING_MODEL``
 — duplicated by design (the client package ships independently and
 cannot import from the rest of the project)."""
 
-DEFAULT_OWNERSHIP_FILE: Final[Path] = Path.home() / ".a2x_client" / "owned.json"
+DEFAULT_OWNERSHIP_FILE: Final[Path] = Path.home() / ".a2x_registry_client" / "owned.json"
 
 STATUS_FIELD: Final[str] = "status"
 """Service-state field on the AgentCard. Eureka-style intent — values
@@ -231,7 +231,7 @@ def extract_endpoint(card: Any) -> str | None:
 def resolve_ownership_file(raw: Any) -> Path | None:
     """Return the effective ownership-file path, or ``None`` for memory-only mode.
 
-    - ``None`` → default ``~/.a2x_client/owned.json``
+    - ``None`` → default ``~/.a2x_registry_client/owned.json``
     - ``False`` → disable persistence
     - ``Path`` / ``str`` → use as-is
     """
