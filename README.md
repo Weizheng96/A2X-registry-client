@@ -1,5 +1,7 @@
 # A2X Registry Client SDK
 
+English | [中文](README_cn.md)
+
 [![PyPI](https://img.shields.io/pypi/v/a2x-registry-client.svg)](https://pypi.org/project/a2x-registry-client/)
 [![Python](https://img.shields.io/pypi/pyversions/a2x-registry-client.svg)](https://pypi.org/project/a2x-registry-client/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
